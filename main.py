@@ -18,19 +18,19 @@ Psy_flag = 29 / 20  # 社会适应能力表 正常异常区分值
 # Y(out):SCL-90 的“人际关系敏感”倾向题，9道总共均值在
 
 def db():
-    "从数据库中提取数据 以一维数据流输入，转换为M*(n+1)的二维列表，进行输出"
+    "从数据库中提取数据 以一维数据流输入，转换为M*(n+2)的二维列表，进行输出"
     db = pm.connect(host="localhost", user="root", password="123456", database="psychomeasure_scale")
 
     cursor = db.cursor()
 
-    sql = "SELECT `social_tag`,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20 FROM psytest_using"
+    sql = "SELECT `scl-90_tag`,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,user_sex FROM psytest_using"
 
     try:
         cursor.execute(sql)
         pnlist = []
         results = cursor.fetchall()
         for row in results:
-            for column in range(n + 1):
+            for column in range(n + 2):
                 pnlist.append(row[column])
 
         # print('列表总长度：',len(pnlist))
@@ -42,15 +42,13 @@ def db():
     cursor.close()
     db.close()
 
-    return pnlist
-
-def db_to_array(pnlist):
     inlist = np.array(pnlist)  # 建立numpy.array对象
 
-    L = inlist.reshape((M, n + 1))  # List,一维数组二维化，将一维列表转换为258*21(即m,n+1)的列表
+    L = inlist.reshape((M, n + 2))  # List,一维数组二维化，将一维列表转换为258*21(即m,n+1)的列表
     # print(list)
 
     return L
+
 
 def train(L):
     "输入训练集，使用朴素贝叶斯分类器对权重进行训练，输出两种权重计算方式计算出的权重"
@@ -63,7 +61,7 @@ def train(L):
     # print(N)
 
     for j in range(n):
-        for i in range(M):
+        for i in range(m):
             if L[i][0] == 0 and L[i][j + 1] == -2:
                 N[j][0][0] = N[j][0][0] + 1
             elif L[i][0] == 0 and L[i][j + 1] == 0:
@@ -84,7 +82,7 @@ def train(L):
         N[j][2][2] = N[j][2][0] + N[j][2][1]
         N[j][3][0] = N[j][0][0] + N[j][1][0] + N[j][2][0]
         N[j][3][1] = N[j][0][1] + N[j][1][1] + N[j][2][1]
-        N[j][3][2] = M
+        N[j][3][2] = m
     # print(N)
 
     P = np.empty((n, 3, 3), dtype=float)
@@ -138,6 +136,9 @@ def train(L):
     # for j in range(20):
     #     print("{:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f} ".format(PO[j][0][0], PO[j][1][0], PO[j][2][0], PO[j][0][1],
     #                                                               PO[j][1][1], PO[j][2][1]))
+
+    # for j in range(20):
+    #     print("{:.4f} {:.4f}".format(S[j][0],S[j][1]))
 
     D1 = np.empty((n), dtype=float)
     # discrimination，使用两种支持度之差作为第一种区分度
@@ -219,25 +220,61 @@ def test(test_list, W):
 
 def model_1():
     "不加性别分类的原始权重生成模式"
-    pnlist = db()  # 从数据库中提取数据 以一维列表形式输出提取的数据流 再将其转换为M*（n+1）二维列表
+    L = db()  # 从数据库中提取数据 以一维列表形式输出提取的数据流 再将其转换为M*（n+1）二维列表
     # print(db.__doc__)
 
-    L=db_to_array(pnlist)
+    L = L[:, :21]  # 将性别列切除
+
+    # print("L:")
     # print(L)
+
+    # print(L[:, 0])
 
     W1, W2 = train(L)  # 输入258*21二维数组，输出计算得出的权值
 
-    flag = test(L, W1)
+    flag = test(L, W2)
 
-    print("{} ".format(flag))
+    # for i in range(M):
+    #     print("{}".format(flag[i]))
 
 
 def model_2():
     "加入性别分类的权重生成模式"
+    L = db()  # 从数据库中提取数据 以一维列表形式输出提取的数据流 再将其转换为M*（n+1）二维列表
+
+    M_num = W_num = 0
+
+    for i in range(M):
+        if L[i][21] == 0:
+            M_num += 1
+        else:
+            W_num += 1
+
+    M_list = np.zeros((M_num, 22),dtype=int)
+    W_list = np.zeros((W_num, 22),dtype=int)
+
+    p = q = 0
+    for i in range(M):
+        if L[i][21] == 0:
+            M_list[p] = L[i]
+            p += 1
+        else:
+            W_list[q] = L[i]
+            q += 1
+
+    M_list = M_list[:, :21]
+    W_list = W_list[:, :21]
+
+    # print("M_list:")
+    # print(M_list)
+
+    M_W1, M_W2 = train(M_list)
+    W_W1, W_W2 = train(W_list)
 
 
 def main():
     model_1()
+    model_2()
 
 
 if __name__ == '__main__':
