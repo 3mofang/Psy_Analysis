@@ -11,18 +11,19 @@ n = 20  # 心理量表题目数量
 M = 258  # 量表统计数据量
 PY = 0.5  # 先验概率
 P_Y = 1 - PY
+Psy_flag = 17 / 20  # 社会适应能力表 正常异常区分值
 
 
 # X(in):测试者选择的每题的选项，定义域{-2,0,2}
 # Y(out):SCL-90 的“人际关系敏感”倾向题，9道总共均值在
 
 def db():
-    "从数据库中提取数据 以一维列表形式输出提取的数据流"
+    "从数据库中提取数据 以一维数据流输入，转换为M*(n+1)的二维列表，进行输出"
     db = pm.connect(host="localhost", user="root", password="123456", database="psychomeasure_scale")
 
     cursor = db.cursor()
 
-    sql = "SELECT `scl-90_tag`,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20 FROM psytest_using"
+    sql = "SELECT `scl-90_tag`,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,user_sex FROM psytest_using"
 
     try:
         cursor.execute(sql)
@@ -43,12 +44,15 @@ def db():
 
     return pnlist
 
-
-def db_to_N(pnlist):
+def db_to_array(pnlist):
     inlist = np.array(pnlist)  # 建立numpy.array对象
 
     L = inlist.reshape((M, n + 1))  # List,一维数组二维化，将一维列表转换为258*21(即m,n+1)的列表
     # print(list)
+
+def train(L):
+    "输入训练集，使用朴素贝叶斯分类器对权重进行训练，输出两种权重计算方式计算出的权重"
+    m = int(len(L) / (n + 1))  # 训练集行数
 
     N = np.empty((n, 4, 3), dtype=int)
     # Number,N[20][4][3]是两种类型（SCL-90划分）的人分别在每题上选择选项的数量统计数组
@@ -80,13 +84,6 @@ def db_to_N(pnlist):
         N[j][3][1] = N[j][0][1] + N[j][1][1] + N[j][2][1]
         N[j][3][2] = M
     # print(N)
-
-    return N
-
-
-def train(N):
-    "输入训练集，使用朴素贝叶斯分类器对权重进行训练，输出两种权重计算方式计算出的权重"
-    m = int(len(N) / (n + 1))  # 训练集行数
 
     P = np.empty((n, 3, 3), dtype=float)
     # Probability,P[20][3][3]是条件概率(似然函数)数组
@@ -198,17 +195,46 @@ def train(N):
 
 
 def test(test_list, W):
-    "输入测试集、权重，对比使用权重之后"
+    "输入测试集、权重，输出以Psy_flag为分界线的社会适应能力结果分类标签"
+    L = test_list[:, 1:21]  # 将SCL_()_tag切掉
+    m = len(L)
+
+    flag = np.empty((m), dtype=int)
+
+    flag.fill(0)
+
+    for i in range(m):
+        # print("L{}:{}".format(i,L[i]))
+        # print(W)
+        sum = np.dot(L[i], W)
+        print("{:.4f}".format(sum * 20))
+        if sum > Psy_flag:
+            flag[i] = 0
+        else:
+            flag[i] = 1
+    return flag
+
+
+def model_1():
+    "不加性别分类的原始权重生成模式"
+    L = db()  # 从数据库中提取数据 以一维列表形式输出提取的数据流 再将其转换为M*（n+1）二维列表
+    # print(db.__doc__)
+
+    # print(L)
+
+    W1, W2 = train(L)  # 输入258*21二维数组，输出计算得出的权值
+
+    flag = test(L, W2)
+
+    print(flag)
+
+
+def model_2():
+    "加入性别分类的权重生成模式"
 
 
 def main():
-    pnlist = db()  # 从数据库中提取数据 以一维列表形式输出提取的数据流
-    # print(db.__doc__)
-    # print(pnlist) #打印从数据库输入的一维数组
-
-    N = db_to_N(pnlist)  # 将一维数据流转换为M*(n+1)维数组
-
-    train(N)
+    model_1()
 
 
 if __name__ == '__main__':
