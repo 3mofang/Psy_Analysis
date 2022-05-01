@@ -200,7 +200,7 @@ def train(N):
 def test(test_list, W):
     "输入测试集、权重，对比使用权重之后"
     'test'
-    'aa'
+    'aaa'
 
 def main():
     pnlist = db()  # 从数据库中提取数据 以一维列表形式输出提取的数据流
