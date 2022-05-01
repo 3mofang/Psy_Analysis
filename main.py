@@ -11,7 +11,7 @@ n = 20  # 心理量表题目数量
 M = 258  # 量表统计数据量
 PY = 0.5  # 先验概率
 P_Y = 1 - PY
-Psy_flag = 17 / 20  # 社会适应能力表 正常异常区分值
+Psy_flag = 29 / 20  # 社会适应能力表 正常异常区分值
 
 
 # X(in):测试者选择的每题的选项，定义域{-2,0,2}
@@ -23,7 +23,7 @@ def db():
 
     cursor = db.cursor()
 
-    sql = "SELECT `scl-90_tag`,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20 FROM psytest_using"
+    sql = "SELECT `social_tag`,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20 FROM psytest_using"
 
     try:
         cursor.execute(sql)
@@ -209,7 +209,7 @@ def test(test_list, W):
         # print("L{}:{}".format(i,L[i]))
         # print(W)
         sum = np.dot(L[i], W)
-        print("{:.4f}".format(sum * 20))
+        # print("{:.4f}".format(sum * 20))
         if sum > Psy_flag:
             flag[i] = 0
         else:
@@ -227,9 +227,9 @@ def model_1():
 
     W1, W2 = train(L)  # 输入258*21二维数组，输出计算得出的权值
 
-    flag = test(L, W2)
+    flag = test(L, W1)
 
-    print(flag)
+    print("{} ".format(flag))
 
 
 def model_2():
