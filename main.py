@@ -23,7 +23,7 @@ def db():
 
     cursor = db.cursor()
 
-    sql = "SELECT `scl-90_tag`,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,user_sex FROM psytest_using"
+    sql = "SELECT `scl-90_tag`,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20 FROM psytest_using"
 
     try:
         cursor.execute(sql)
@@ -50,9 +50,11 @@ def db_to_array(pnlist):
     L = inlist.reshape((M, n + 1))  # List,一维数组二维化，将一维列表转换为258*21(即m,n+1)的列表
     # print(list)
 
+    return L
+
 def train(L):
     "输入训练集，使用朴素贝叶斯分类器对权重进行训练，输出两种权重计算方式计算出的权重"
-    m = int(len(L) / (n + 1))  # 训练集行数
+    m = len(L)  # 训练集行数
 
     N = np.empty((n, 4, 3), dtype=int)
     # Number,N[20][4][3]是两种类型（SCL-90划分）的人分别在每题上选择选项的数量统计数组
@@ -217,9 +219,10 @@ def test(test_list, W):
 
 def model_1():
     "不加性别分类的原始权重生成模式"
-    L = db()  # 从数据库中提取数据 以一维列表形式输出提取的数据流 再将其转换为M*（n+1）二维列表
+    pnlist = db()  # 从数据库中提取数据 以一维列表形式输出提取的数据流 再将其转换为M*（n+1）二维列表
     # print(db.__doc__)
 
+    L=db_to_array(pnlist)
     # print(L)
 
     W1, W2 = train(L)  # 输入258*21二维数组，输出计算得出的权值
